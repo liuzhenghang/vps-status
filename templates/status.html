@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>VPS 状态监控</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        .overall-status {
+            font-size: 18px;
+            margin-bottom: 40px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            background: #1a1a1a;
+        }
+        .overall-status.ok { border-left: 4px solid #10b981; }
+        .overall-status.warn { border-left: 4px solid #f59e0b; }
+        .overall-status.error { border-left: 4px solid #ef4444; }
+        
+        .server-card {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid #2a2a2a;
+        }
+        .server-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .server-info h2 {
+            font-size: 20px;
+            margin-bottom: 4px;
+            color: #fff;
+        }
+        .server-info .ip {
+            color: #888;
+            font-size: 14px;
+        }
+        .health-indicators {
+            display: flex;
+            gap: 12px;
+        }
+        .health-badge {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .health-badge.ok {
+            background: #10b98133;
+            color: #10b981;
+        }
+        .health-badge.warn {
+            background: #f59e0b33;
+            color: #f59e0b;
+        }
+        .health-badge.down {
+            background: #ef444433;
+            color: #ef4444;
+        }
+        
+        .status-timeline {
+            margin-top: 16px;
+        }
+        .timeline-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        .timeline-bar {
+            display: flex;
+            gap: 2px;
+            height: 40px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .timeline-slot {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .timeline-slot .ping {
+            height: 50%;
+            background: #2a2a2a;
+        }
+        .timeline-slot .heartbeat {
+            height: 50%;
+            background: #2a2a2a;
+        }
+        .timeline-slot .ping.ok { background: #10b981; }
+        .timeline-slot .ping.warn { background: #f59e0b; }
+        .timeline-slot .ping.down { background: #ef4444; }
+        .timeline-slot .heartbeat.ok { background: #3b82f6; }
+        .timeline-slot .heartbeat.down { background: #6b7280; }
+        
+        .time-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+            font-size: 11px;
+            color: #666;
+        }
+        .legend {
+            margin-top: 12px;
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+            color: #888;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 10px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>VPS 状态监控</h1>
+        <div class="overall-status {{ overall_class }}">
+            <strong>系统状态：</strong>{{ overall_text }}
+        </div>
+        
+        {{ servers_html }}
+    </div>
+    
+    <script>
+        // 每 30 秒自动刷新页面
+        setTimeout(() => location.reload(), 30000);
+    </script>
+</body>
+</html>
+
