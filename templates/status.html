@@ -144,7 +144,7 @@
             <strong>系统状态：</strong>{{ overall_text }}
         </div>
         
-        {{ servers_html }}
+        {{ servers_html | safe }}
     </div>
     
     <script>
