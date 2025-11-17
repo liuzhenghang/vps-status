@@ -9,5 +9,4 @@ data/
 .gitignore
 .idea/
 *.md
-agent.py
 

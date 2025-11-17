@@ -1,0 +1,32 @@
+FROM python:3.11-slim AS builder
+
+WORKDIR /app
+
+# 安装构建依赖和 ping 所需工具（方便你在容器里自测）
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential gcc iputils-ping && \
+    rm -rf /var/lib/apt/lists/*
+
+# 安装 Python 依赖和 PyInstaller
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt pyinstaller
+
+# 复制客户端脚本
+COPY agent.py .
+
+# 打包为 Linux x64 单文件可执行程序
+RUN pyinstaller --onefile --name agent agent.py
+
+
+# 运行阶段镜像，只包含裸二进制，纯 linux/amd64
+FROM debian:bookworm-slim AS runtime
+
+WORKDIR /app
+
+# 复制编译好的可执行文件
+COPY --from=builder /app/dist/agent /app/agent
+
+# 默认入口：直接运行 agent，可根据需要在 docker run 里带参数
+ENTRYPOINT ["/app/agent"]
+
+
