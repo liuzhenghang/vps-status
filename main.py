@@ -2,7 +2,7 @@ import os
 import asyncio
 import json
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 import uvicorn
@@ -74,6 +74,28 @@ async def heartbeat(request: Request):
     
     return {"ok": True, "server_id": result["server_id"]}
 
+
+@app.post("/api/register")
+async def register(request: Request):
+    """注册服务器，使用 name + 请求来源 IP 生成/获取服务器 ID"""
+    from db import get_or_create_server
+
+    data = await request.json()
+    name = data.get("name")
+    if not name:
+        raise HTTPException(status_code=400, detail="name is required")
+
+    client_ip = request.client.host if request.client else "unknown"
+    server = get_or_create_server(server_name=name, ip=client_ip)
+
+    return {
+        "ok": True,
+        "server": {
+            "id": server["id"],
+            "name": server["name"],
+            "ip": server["ip"],
+        },
+    }
 
 @app.get("/api/servers")
 async def list_servers():

@@ -54,6 +54,39 @@ def report_heartbeat(server_url, server_id=None, server_name=None, metrics=None)
     """上报心跳到服务端"""
     if not metrics:
         return False
+
+
+def register_server(server_url, server_name):
+    """向服务端注册，返回服务器 ID"""
+    try:
+        if not server_name:
+            print("错误：注册时必须提供服务器名称")
+            return None
+
+        url = f"{server_url.rstrip('/')}/api/register"
+        resp = requests.post(url, json={"name": server_name}, timeout=10)
+        if resp.status_code != 200:
+            print(f"注册失败: HTTP {resp.status_code} - {resp.text}")
+            return None
+
+        data = resp.json()
+        srv = data.get("server") or {}
+        server_id = srv.get("id")
+        if not server_id:
+            print(f"注册失败: 服务端未返回服务器ID: {data}")
+            return None
+
+        print(f"注册成功 - 服务器名称: {srv.get('name')}, IP: {srv.get('ip')}, 服务器ID: {server_id}")
+        return server_id
+    except requests.exceptions.ConnectionError:
+        print(f"连接失败: 无法连接到 {server_url}")
+        return None
+    except requests.exceptions.Timeout:
+        print("注册请求超时")
+        return None
+    except Exception as e:
+        print(f"注册异常: {e}")
+        return None
     
     try:
         # 构建请求数据
@@ -105,12 +138,26 @@ def main():
     parser.add_argument("--server-name", help="服务器名称（如果未提供 server-id）")
     parser.add_argument("--interval", type=int, default=60, help="上报间隔（秒），默认 60")
     parser.add_argument("--once", action="store_true", help="只上报一次后退出")
+    parser.add_argument("--register", action="store_true", help="仅注册并打印服务器ID，不进行心跳上报")
     
     args = parser.parse_args()
     
-    # 验证参数
+    # 注册模式：只向服务端注册并打印 ID
+    if args.register:
+        if not args.server_name:
+            print("错误：注册模式必须提供 --server-name")
+            sys.exit(1)
+        server_id = register_server(args.server_url, args.server_name)
+        if server_id:
+            # 只打印一次就退出，方便拷贝 ID 去用
+            print(f"请保存该服务器ID，用于后续心跳上报: {server_id}")
+            sys.exit(0)
+        else:
+            sys.exit(1)
+
+    # 普通心跳模式需要有 server-id 或 server-name
     if not args.server_id and not args.server_name:
-        print("错误：必须提供 --server-id 或 --server-name")
+        print("错误：必须提供 --server-id 或 --server-name（或者使用 --register 先注册）")
         sys.exit(1)
     
     print(f"VPS 状态监控客户端启动")
