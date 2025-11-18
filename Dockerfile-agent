@@ -1,4 +1,4 @@
-FROM python:3.11-slim AS builder
+FROM python:3.11-slim-bullseye AS builder
 
 WORKDIR /app
 
@@ -19,7 +19,8 @@ RUN pyinstaller --onefile --name agent agent.py
 
 
 # 运行阶段镜像，只包含裸二进制，纯 linux/amd64
-FROM debian:bookworm-slim AS runtime
+# 用 bullseye，glibc 版本更低，编出来的二进制更兼容老系统
+FROM debian:bullseye-slim AS runtime
 
 WORKDIR /app
 
