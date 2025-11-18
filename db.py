@@ -339,6 +339,93 @@ def get_24h_timeline(server_id, slots=288):
     return timeline
 
 
+def get_latest_resource_usage(server_id):
+    """获取服务器最近一次心跳的 CPU / 内存占用"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT cpu_load, mem_load FROM heartbeat_status
+        WHERE server_id = ?
+        ORDER BY ts DESC
+        LIMIT 1
+        """,
+        (server_id,),
+    )
+    row = cursor.fetchone()
+    conn.close()
+
+    if not row:
+        return {"cpu": None, "mem": None}
+
+    return {"cpu": row["cpu_load"], "mem": row["mem_load"]}
+
+
+def get_server_resource_series(server_id, points=60):
+    """获取过去 24 小时 CPU / 内存占用曲线（按时间均分聚合）"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    now = int(time.time())
+    start_time = now - 24 * 3600
+    total_seconds = 24 * 3600
+    slot_duration = total_seconds / points
+
+    # 先把 24 小时内所有心跳取出来，按时间槽聚合
+    cursor.execute(
+        """
+        SELECT ts, cpu_load, mem_load
+        FROM heartbeat_status
+        WHERE server_id = ? AND ts >= ?
+        ORDER BY ts ASC
+        """,
+        (server_id, start_time),
+    )
+    rows = cursor.fetchall()
+
+    buckets = [
+        {"cpu_sum": 0.0, "cpu_count": 0, "mem_sum": 0.0, "mem_count": 0}
+        for _ in range(points)
+    ]
+
+    for row in rows:
+        ts = row["ts"]
+        cpu = row["cpu_load"]
+        mem = row["mem_load"]
+
+        idx = int((ts - start_time) // slot_duration)
+        if idx < 0:
+            continue
+        if idx >= points:
+            idx = points - 1
+
+        bucket = buckets[idx]
+        if cpu is not None:
+            bucket["cpu_sum"] += cpu
+            bucket["cpu_count"] += 1
+        if mem is not None:
+            bucket["mem_sum"] += mem
+            bucket["mem_count"] += 1
+
+    series = []
+    for i in range(points):
+        slot_start = start_time + int(i * slot_duration)
+        b = buckets[i]
+        cpu_avg = b["cpu_sum"] / b["cpu_count"] if b["cpu_count"] > 0 else None
+        mem_avg = b["mem_sum"] / b["mem_count"] if b["mem_count"] > 0 else None
+        series.append(
+            {
+                "ts": slot_start,
+                "cpu": cpu_avg,
+                "mem": mem_avg,
+            }
+        )
+
+    conn.close()
+    return series
+
+
 def get_status_page_data():
     """获取状态页面所需的所有数据"""
     servers = get_all_servers()
@@ -349,6 +436,8 @@ def get_status_page_data():
     for server in servers:
         health = get_server_health_status(server["id"])
         timeline = get_24h_timeline(server["id"])
+        latest_usage = get_latest_resource_usage(server["id"])
+        resource_series = get_server_resource_series(server["id"])
         
         # 更新整体状态
         if health["ping_health"] == "down" or health["heartbeat_health"] == "down":
@@ -362,7 +451,10 @@ def get_status_page_data():
             "ip": server["ip"],
             "ping_health": health["ping_health"],
             "heartbeat_health": health["heartbeat_health"],
-            "timeline": timeline
+            "timeline": timeline,
+            "current_cpu": latest_usage["cpu"],
+            "current_mem": latest_usage["mem"],
+            "resource_series": resource_series,
         })
     
     return {

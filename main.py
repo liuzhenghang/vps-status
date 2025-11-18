@@ -1,5 +1,6 @@
 import os
 import asyncio
+import json
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
@@ -121,6 +122,14 @@ async def status_page(request: Request):
                 </div>
             ''')
         
+        # 当前 CPU / 内存占用展示
+        cpu_val = srv.get("current_cpu")
+        mem_val = srv.get("current_mem")
+        cpu_text = f"{cpu_val:.1f}%" if cpu_val is not None else "—"
+        mem_text = f"{mem_val:.1f}%" if mem_val is not None else "—"
+
+        resource_series_json = json.dumps(srv.get("resource_series", []))
+
         servers_html_parts.append(f'''
         <div class="server-card">
             <div class="server-header">
@@ -131,6 +140,22 @@ async def status_page(request: Request):
                 <div class="health-indicators">
                     <div class="health-badge {ping_class}">{ping_text}</div>
                     <div class="health-badge {hb_class}">{hb_text}</div>
+                </div>
+            </div>
+
+            <div class="metrics">
+                <div class="metric-summary">
+                    <div class="metric-item">
+                        <span class="metric-label">CPU</span>
+                        <span class="metric-value">{cpu_text}</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">内存</span>
+                        <span class="metric-value">{mem_text}</span>
+                    </div>
+                </div>
+                <div class="metric-chart-wrapper">
+                    <canvas class="resource-chart" data-series='{resource_series_json}'></canvas>
                 </div>
             </div>
             
