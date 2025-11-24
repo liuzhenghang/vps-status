@@ -179,6 +179,15 @@ def record_heartbeat(server_id=None, server_name=None, up_bytes=0, down_bytes=0,
     conn = get_db()
     cursor = conn.cursor()
     
+    # 检查IP是否变化，如果变化则更新
+    if client_ip and client_ip != "unknown" and server["ip"] != client_ip:
+        now = int(time.time())
+        cursor.execute(
+            "UPDATE servers SET ip = ?, updated_at = ? WHERE id = ?",
+            (client_ip, now, server["id"])
+        )
+        print(f"服务器 {server['name']} IP已更新: {server['ip']} -> {client_ip}")
+    
     now = int(time.time())
     hb_id = id_gen.next_id()
     

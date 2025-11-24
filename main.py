@@ -59,7 +59,18 @@ async def heartbeat(request: Request):
     from db import record_heartbeat
     
     data = await request.json()
-    client_ip = request.client.host if request.client else "unknown"
+    
+    # 获取真实客户端IP（处理nginx反向代理）
+    client_ip = request.headers.get("X-Forwarded-For")
+    if client_ip:
+        # X-Forwarded-For可能包含多个IP，取第一个
+        client_ip = client_ip.split(",")[0].strip()
+    else:
+        # 尝试X-Real-IP
+        client_ip = request.headers.get("X-Real-IP")
+        if not client_ip:
+            # 最后才用直连IP
+            client_ip = request.client.host if request.client else "unknown"
     
     result = record_heartbeat(
         server_id=data.get("server_id"),
