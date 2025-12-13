@@ -199,6 +199,15 @@ def record_heartbeat(server_id=None, server_name=None, up_bytes=0, down_bytes=0,
           client_ip, json.dumps(raw_data) if raw_data else None))
     
     conn.commit()
+    
+    # 清理该服务器超过10天的旧数据
+    threshold = now - 10 * 24 * 3600  # 10天前的时间戳
+    cursor.execute("DELETE FROM heartbeat_status WHERE server_id = ? AND ts < ?", 
+                   (server["id"], threshold))
+    cursor.execute("DELETE FROM ping_status WHERE server_id = ? AND ts < ?", 
+                   (server["id"], threshold))
+    deleted_hb = cursor.rowcount
+    conn.commit()
     conn.close()
     
     return {"server_id": server["id"], "heartbeat_id": hb_id}
