@@ -50,9 +50,38 @@
             margin-bottom: 4px;
             color: #fff;
         }
-        .server-info .ip {
-            color: #888;
+        .server-info .ip-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             font-size: 14px;
+            color: #888;
+        }
+        .server-info .ip-text {
+            filter: blur(5px);
+            transition: filter 0.3s;
+            user-select: none;
+        }
+        .server-info .ip-text.visible {
+            filter: none;
+            user-select: text;
+        }
+        .ip-toggle {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+            padding: 2px;
+        }
+        .ip-toggle:hover {
+            opacity: 1;
+        }
+        .ip-toggle svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
         }
         .health-indicators {
             display: flex;
@@ -184,6 +213,12 @@
     <script>
         // 每 30 秒自动刷新页面
         setTimeout(() => location.reload(), 30000);
+
+        function toggleIp(btn) {
+            const wrapper = btn.closest('.ip-wrapper');
+            const text = wrapper.querySelector('.ip-text');
+            text.classList.toggle('visible');
+        }
 
         // 简单 CPU / 内存折线图渲染
         function drawLine(ctx, points, color, width, height, padding) {

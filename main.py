@@ -168,7 +168,12 @@ async def status_page(request: Request):
             <div class="server-header">
                 <div class="server-info">
                     <h2>{srv["name"]}</h2>
-                    <div class="ip">{srv["ip"]}</div>
+                    <div class="ip-wrapper">
+                        <span class="ip-text">{srv["ip"]}</span>
+                        <div class="ip-toggle" onclick="toggleIp(this)" title="显示/隐藏 IP">
+                            <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                        </div>
+                    </div>
                 </div>
                 <div class="health-indicators">
                     <div class="health-badge {ping_class}">{ping_text}</div>
